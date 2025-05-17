@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 
 # 字體支援中文（可視需求切換）
 import matplotlib
-matplotlib.rcParams['font.family'] = 'Microsoft JhengHei'
+matplotlib.rcParams['axes.unicode_minus'] = False  # 避免負號亂碼
+matplotlib.rcParams['font.family'] = ['Microsoft JhengHei', 'SimHei', 'Noto Sans CJK TC', 'Arial Unicode MS']
 
 # 語言包
 LANGS = {
