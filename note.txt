@@ -1,0 +1,28 @@
+WMT 的測試非常成功  低波動股票似乎更優勢
+
+
+
+抓取
+daily
+col
+
+
+當2之股票飄移項差不多  找標準差小的做
+
+模擬 一年return結果 :  NVDA  AMZON  MCD　WMT GOOG  
+需要更改變數: 飄移項, 總IV(sigma annual) option IV
+
+
+年IV
+TQQQ(77%) NVDA(58%) AMZN(36%)  MCD(20%)　WMT(40%) GOOG(32%)
+
+飄移項
+NVDA(59%)  AMZON(15.5%)  MCD(10.5%)　WMT(19%) GOOG(18%) 
+
+daily stdev
+AMZN     2.25%
+GOOG     2.04%
+MCD      1.47%
+NVDA     3.41%
+WMT      1.43%
+^IXIC     1.6%
