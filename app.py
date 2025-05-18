@@ -200,7 +200,7 @@ def simulate_heston_regime_jump(S0, mu, T, steps, kappa, theta, xi, v0, rho,
 st.title(T["title"])
 with st.expander("⚙️ " + T["param_block"], expanded=True):
     # === 使用者輸入 Ticker ===
-    ticker_symbol = st.text_input(T["ticker"], value="NVDA").upper()
+    ticker_symbol = st.text_input(T["ticker"], value=T["ticker"]).upper()
     sim_mode = st.selectbox(T["sim_mode"], [T["mode_1"], T["mode_2"], 
                                             T["mode_3"], T["mode_4"], T["mode_5"]])
 
@@ -284,7 +284,7 @@ def find_nearest_expiry(desired_days, ticker="NVDA", tolerance=3):
 
     return best_match  # 回傳 (到期日字串, 實際天數)
 
-def get_strike_iv(desired_days, strike, ticker="NVDA"):
+def get_strike_iv(desired_days, strike, ticker):
     expiry_data = find_nearest_expiry(desired_days, ticker)
     if not expiry_data:
         return None, None, None
@@ -389,7 +389,7 @@ with st.expander("🛒 " + T["trade_block"], expanded=True):
         option_type = st.selectbox(T["option_type"], [T["Long Call"], T["Long Put"]])
         strike = st.number_input(T["strike_input"], value=100.0)
         days_to_expiry = st.number_input(T["days_to_expiry"], value=30)
-        strike_iv, _, true_days = get_strike_iv(days_to_expiry, strike)
+        strike_iv, _, true_days = get_strike_iv(days_to_expiry, strike, ticker=ticker_symbol)
         if st.button(T['execute']):
             S = st.session_state.price_path[st.session_state.day]
             T_days = true_days if true_days else days_to_expiry
