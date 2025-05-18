@@ -23,10 +23,10 @@ def bs_price(S, K, T, r, sigma, option_type='call'):
         return K*math.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
  
 # IV 微笑調整函數
-def smile_adjusted_iv(base_iv, strike, spot):
-    diff_pct = abs(strike - spot) / spot
-    control=(0.001*spot)/base_iv  #baseiv*(1/135)*? = 0.1%
-    return  base_iv+(diff_pct*(control)) # 微笑型結構
+# def smile_adjusted_iv(base_iv, strike, spot):
+#     diff_pct = abs(strike - spot) / spot
+#     control=(0.001*spot)/base_iv  #baseiv*(1/135)*? = 0.1%
+#     return  base_iv+(diff_pct*(control)) # 微笑型結構
 def term_structure_adjusted_iv(base_iv, strike, spot, T_days, long_term_boost=0.55):
     # """long_term_boost: x天期的增幅比例，預設為50%
     diff_pct = abs(strike - spot) / spot
@@ -618,7 +618,7 @@ class OptionSimulator:
 
 # 啟動模擬器（請勿刪除）
 sim = OptionSimulator(initial_cash=10000, S0_TQQQ=135, 
-                      S0_SQQQ=28.5, sigma_annual=0.57, r=0.045,base_iv=0.44)
+                      S0_SQQQ=28.5, sigma_annual=0.57, r=0.045,base_iv=0.42)
 sim.interactive_mode()
 # price_path = [sim.S_TQQQ]
 # plt.plot(sim.iv_path)

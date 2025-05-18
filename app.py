@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import math
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import yfinance as yf
+from datetime import datetime
 
 # 字體支援中文（可視需求切換）
 import matplotlib
@@ -59,6 +61,7 @@ LANGS = {
         "next_step": "📆 下一天",
         'total_pnl': "💰當前總損益",
         "nothing": "空空",
+        'ticker':"股票代號",
     },
     "en": {
         "title": "Monte Carlo Simulator",
@@ -106,6 +109,7 @@ LANGS = {
         "next_step": "📆 Next Day",
         'total_pnl': "💰Total PnL",
         "nothing": "Nothing Here",
+        'ticker':"Ticker",
     }
 }
 
@@ -195,16 +199,32 @@ def simulate_heston_regime_jump(S0, mu, T, steps, kappa, theta, xi, v0, rho,
 # 主介面
 st.title(T["title"])
 with st.expander("⚙️ " + T["param_block"], expanded=True):
+    # === 使用者輸入 Ticker ===
+    ticker_symbol = st.text_input(T["ticker"], value="NVDA").upper()
     sim_mode = st.selectbox(T["sim_mode"], [T["mode_1"], T["mode_2"], 
                                             T["mode_3"], T["mode_4"], T["mode_5"]])
-    S0 = st.number_input(T["initial_price"], value=100.0)
+
+    # 自動抓取最新收盤價與整體IV
+    try:
+        yf_data = yf.Ticker(ticker_symbol)
+        latest_price = yf_data.history(period="1d")["Close"][-1]
+        default_iv = yf_data.info.get("impliedVolatility", 0.3)
+    except:
+        latest_price = 100.0
+        default_iv = 0.3
+
+    S0 = st.number_input(T["initial_price"], value=float(latest_price))
     mu = st.number_input(T["drift"], value=0.1)
+
     if sim_mode in [T["mode_4"], T["mode_5"]]:
         sigma = None
     else:
-        sigma = st.number_input(T["vol"], value=0.2)
+        sigma = st.number_input(T["vol"], value=float(default_iv))
+
     T_days = st.number_input(T["days"], value=30)
     paths = st.number_input(T["paths"], value=100, min_value=1, step=1)
+
+
 
     if sim_mode in [T["mode_4"], T["mode_5"]]:
         kappa = st.slider(T["kappa"], 0.1, 10.0, 5.0, step=0.1)
@@ -247,8 +267,37 @@ if "realized_pnl" not in st.session_state:
     st.session_state.realized_pnl = 0.0
 
     
+# === 自動抓取最近到期日 & 對應 Strike IV ===
+def find_nearest_expiry(desired_days, ticker="NVDA", tolerance=3):
+    t = yf.Ticker(ticker)
+    today = datetime.today()
+    closest_diff = float("inf")
+    best_match = None
 
+    for exp_str in t.options:
+        exp_date = datetime.strptime(exp_str, "%Y-%m-%d")
+        days_to_expiry = (exp_date - today).days
+        diff = abs(desired_days - days_to_expiry)
+        if diff <= tolerance and diff < closest_diff:
+            best_match = (exp_str, days_to_expiry)
+            closest_diff = diff
 
+    return best_match  # 回傳 (到期日字串, 實際天數)
+
+def get_strike_iv(desired_days, strike, ticker="NVDA"):
+    expiry_data = find_nearest_expiry(desired_days, ticker)
+    if not expiry_data:
+        return None, None, None
+
+    expiry_str, actual_days = expiry_data
+    t = yf.Ticker(ticker)
+    spot = t.history(period="1d")["Close"][-1]
+    calls = t.option_chain(expiry_str).calls.copy()
+    calls["strike_diff"] = abs(calls["strike"] - strike)
+    closest = calls.sort_values("strike_diff").iloc[0]
+    strike_iv = closest["impliedVolatility"]
+
+    return strike_iv, expiry_str, actual_days
 
 # === Black-Scholes 定價函數 ===
 def bs_price(S, K, T, r, sigma, option_type='call'):
@@ -332,38 +381,32 @@ if st.button(T["start_button"]):
         st.pyplot(fig)
         st.session_state.price_path = all_paths[np.random.choice(len(all_paths))]
 
-# === 下單介面 ===
+# === 下單區塊（直接用 yfinance 的 strike IV） ===
 with st.expander("🛒 " + T["trade_block"], expanded=True):
-    if not st.session_state.price_path:   #請先執行模擬，產生股價路徑後才能下單。
+    if not st.session_state.price_path:
         st.warning(T["warning"])
     else:
         option_type = st.selectbox(T["option_type"], [T["Long Call"], T["Long Put"]])
         strike = st.number_input(T["strike_input"], value=100.0)
         days_to_expiry = st.number_input(T["days_to_expiry"], value=30)
-        atm_iv = st.number_input(T["atm_iv"], value=0.5)
-        iv_change = st.slider(T["iv_change"], 0.0, 0.02, 0.003, step=0.001, format="%.3f")  # IV 變化量
-        if st.button(T['execute']): #下單按鈕
+        strike_iv, _, true_days = get_strike_iv(days_to_expiry, strike)
+        if st.button(T['execute']):
             S = st.session_state.price_path[st.session_state.day]
-            adjusted_iv = atm_iv + iv_change * (S - strike)
-            T_days = days_to_expiry / 365
+            T_days = true_days if true_days else days_to_expiry
             r = 0.045
-            premium = bs_price(S, strike, T_days, r, adjusted_iv, option_type='call' if option_type == "Long Call" else 'put')
+            premium = bs_price(S, strike, T_days / 365, r, strike_iv, option_type='call' if option_type == "Long Call" else 'put')
 
-            if option_type == "Long Call":
-                st.session_state.cash -= premium * 100
-            else:
-                st.session_state.cash -= premium * 100 
+            st.session_state.cash -= premium * 100
             st.session_state.positions.append({
                 "type": option_type,
                 "strike": strike,
                 "premium": premium,
                 "T_days_input": days_to_expiry,
-                "T": T_days,
+                "T": T_days / 365,
                 "day_entered": st.session_state.day,
-                "iv": adjusted_iv
+                "iv": strike_iv
             })
-            
-            st.success(f"✅ 已建立 {option_type} 倉位，IV={adjusted_iv:.2%}，權利金={premium:.2f}")
+            st.success(f"✅ 已建立 {option_type} 倉位，IV={strike_iv:.2%}，權利金={premium:.2f}")
 
 
 # === 模擬前進區塊 ===
