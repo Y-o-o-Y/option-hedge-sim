@@ -617,7 +617,7 @@ class OptionSimulator:
                 print("無效的選項，請重新輸入。")
 
 # 啟動模擬器（請勿刪除）
-sim = OptionSimulator(initial_cash=10000, S0_TQQQ=135, 
+sim = OptionSimulator(initial_cash=10000, S0_TQQQ=135.4, 
                       S0_SQQQ=28.5, sigma_annual=0.57, r=0.045,base_iv=0.42)
 sim.interactive_mode()
 # price_path = [sim.S_TQQQ]

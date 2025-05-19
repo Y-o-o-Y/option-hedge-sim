@@ -1,4 +1,4 @@
-#streamlit run c:/Users/sofjk/Desktop/Hedge/option_hedge/app.py
+#streamlit run c:/Users/sofjk/Desktop/Hedge/option_hedge/123.py
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,16 +47,14 @@ LANGS = {
         "trade_block": "開倉交易",
         "position_block": "💼當前持倉",
         "option_type": "選擇交易類型",
-        "strike_input": "輸入行權價",
-        "days_to_expiry": "剩餘天數",
+        "strike_input": "輸入 Strike 價",
+        "days_to_expiry": "剩餘天數 (T)",
         "atm_iv": "輸入 ATM IV",
         "iv_change": "IV 行權價變化",
         "pnl": "💰當前總損益",
         "close_all": "全部平倉",
         "warning": "⚠️ 請先執行模擬，產生股價路徑後才能下單。",
         "warning2": "⛔ 已到達模擬終點 請重新開始模擬",
-        "warning3": "❌ 無法取得IV，請調整 Strike 或 到期日 或 代號。",
-        "warning4": "⚠️ 模擬尚未開始或價格資料不足",
         "Long Call": "買看漲期權",
         "Long Put": "買看跌期權",
         'execute': "下單",
@@ -64,10 +62,6 @@ LANGS = {
         'total_pnl': "💰當前總損益",
         "nothing": "空空",
         'ticker':"股票代號(例如:AAPL)",
-        "restart": "🔁 重新模擬路徑",
-        "unrealized_PnL": "💰當前浮動損益",
-        "Short Call": "賣看漲期權",
-        "Short Put":  "賣看跌期權",
     },
     "en": {
         "title": "Monte Carlo Simulator",
@@ -102,15 +96,13 @@ LANGS = {
         "position_block": "💼Current Positions",
         "option_type": "Select Option Type",
         "strike_input": "Enter Strike Price",
-        "days_to_expiry": "Days to Expiry",
+        "days_to_expiry": "Days to Expiry (T)",
         "atm_iv": "Enter ATM IV",
         "iv_change": "IV Change per Strike",
         "pnl": "💰Current Total PnL",
         "close_all": "Close All Positions",
         "warning": "⚠️ Please run the simulation first before placing orders.",
         "warning2": "⛔ Simulation Ended. Please restart.",
-        "warning3": "❌ Unable to fetch IV. Please adjust Strike, Expiry, or Ticker.",
-        "warning4": "⚠️ Simulation not started or insufficient data.",
         "Long Call": "Long Call",
         "Long Put": "Long Put",
         'execute': "Execute Trade",
@@ -118,10 +110,6 @@ LANGS = {
         'total_pnl': "💰Total PnL",
         "nothing": "Nothing Here",
         'ticker':"Ticker(Ex:AAPL)",
-        "restart": "🔁 Restart Simulation",
-        "unrealized_PnL": "💰Current Unrealized PnL",
-        "Short Call": "Sell Call",  
-        "Short Put":  "Sell Put",
     }
 }
 
@@ -413,20 +401,15 @@ with st.expander("🛒 " + T["trade_block"], expanded=True):
     if not isinstance(price_path, list) or len(price_path) == 0:
         st.warning(T["warning"])
     else:
-        option_label = st.selectbox(
-        T["option_type"],
-        [T["Long Call"], T["Long Put"], T["Short Call"], T["Short Put"]]
-        )
-        is_short = option_label in (T["Short Call"], T["Short Put"])
-        
-        option_type = "call" if option_label in (T["Long Call"], T["Short Call"]) else "put"
+        option_label = st.selectbox(T["option_type"], [T["Long Call"], T["Long Put"]])
+        option_type = "call" if "Call" in option_label or "看漲" in option_label else "put"
 
         strike = st.number_input(T["strike_input"], value=100.0)
         days_to_expiry = st.number_input(T["days_to_expiry"], value=30)
         strike_iv, _, true_days = get_strike_iv(days_to_expiry, strike, ticker_symbol)
 
         if strike_iv is None:
-            st.error(T["warning3"])
+            st.error("❌ 無法取得該行權價的 IV，請調整 Strike 或到期日。")
         elif st.button(T['execute']):
             if current_day < len(price_path):
                 S = price_path[current_day]
@@ -456,24 +439,26 @@ with st.expander("🛒 " + T["trade_block"], expanded=True):
                     option_type=option_type
                 )
 
-                      # 📦 记录持仓，保存标签、方向和类型
+                # 💰 扣款
+                st.session_state.cash -= premium * 100
+
+                # 📦 記錄持倉
                 st.session_state.positions.append({
-                    'label': option_label,
                     'type': option_type,
                     'strike': strike,
                     'premium': premium,
                     'T_days_input': actual_days,
-                    'T': actual_days / 365,
+                    'T': T_days / 365,
                     'day_entered': current_day,
                     'iv': iv_used
                 })
 
                 # 成功訊息：顯示開倉時使用的 IV
                 st.success(
-                f"✅ 已建立 {option_label} 倉位，IV={iv_used:.2%}，T={T_days} 天，權利金={premium:.2f}"
+                    f"✅ 已建立 {option_type.upper()} 倉位，IV={iv_used:.2%}，T={T_days} 天，權利金={premium:.2f}"
                 )
             else:
-                st.error(T["warning4"])
+                st.error("⚠️ 模擬尚未開始或價格資料不足")
 
 
 # === 模擬前進區塊 ===
@@ -510,10 +495,7 @@ with col_right:
                             price = max(S - pos["strike"], 0)
                         else:
                             price = max(pos["strike"] - S, 0)
-                        if pos["label"] in [T["Short Call"], T["Short Put"]]:
-                            pnl = (pos["premium"] - price) * 100
-                        else:
-                            pnl = (price - pos["premium"]) * 100
+                        pnl = (price - pos["premium"]) * 100
                         st.session_state.total_pnl += pnl
                         settled.append(i)
                 for i in reversed(settled):
@@ -545,7 +527,7 @@ with col_right:
             st.pyplot(fig)
 
            
-            if st.button(T["restart"]):
+            if st.button("🔁 重新模擬路徑"):
                 st.session_state.force_resample = True
                 
                 if "all_paths" in st.session_state and st.session_state.all_paths:
@@ -616,31 +598,21 @@ with st.expander(T["position_block"], expanded=True):
                     option_type=pos["type"]
                 )
 
-            if pos["label"] in [T["Short Call"], T["Short Put"]]:
-                pnl = (pos["premium"] - price) * 100
-            else:
-                pnl = (price - pos["premium"]) * 100
-
+            pnl = (price - pos["premium"]) * 100
             floating_pnl += pnl
 
-            if lang_choice == "zh":
-                st.write(
-                    f"{i+1}. {pos['label']} | 行權價: {pos['strike']} | 隱含波動率: {iv_used:.2%} | "
-                    f"剩餘: {remaining_days} 天 |權利金{pos["premium"]*100:.0f}| 浮動損益: {pnl:.2f}"
-                )
-            elif lang_choice == "en":
-                st.write(
-                    f"{i+1}. {pos['label']} | Strike: {pos['strike']} | IV: {iv_used:.2%} | "
-                    f"Remaining: {remaining_days} days |Premium{pos["premium"]*100:.0f}| PnL: {pnl:.2f}"
-                )
+            st.write(
+                f"{i+1}. {pos['type']} | Strike: {pos['strike']} | IV_used: {iv_used:.2%} | "
+                f"剩餘T: {remaining_days} 天 | PnL: {pnl:.2f}"
+            )
 
         if st.session_state.positions:
-            st.write(f"{T['unrealized_PnL']}: ${floating_pnl:,.2f}")
+            st.write(f"💰 當前浮動損益：${floating_pnl:,.2f}")
         else:
-            st.write(f"{T['unrealized_PnL']}: ${floating_pnl:,.2f}")
+            st.write(f"💰 累積總損益：${st.session_state.total_pnl:,.2f}")
 
         # 全部平倉同理
-        if st.button(T["close_all"]):
+        if st.button("全部平倉"):
             for pos in st.session_state.positions:
                 days_held = current_day - pos["day_entered"]
                 remaining_days = max(int(pos["T_days_input"] - days_held), 0)
@@ -653,7 +625,7 @@ with st.expander(T["position_block"], expanded=True):
                     price = bs_price(
                         S, pos["strike"], remaining_T,
                         r, iv_used,
-                    option_type=pos["type"]
+                        option_type=pos["type"]
                     )
                 else:
                     if sim_mode in [T['mode_4'], T['mode_5']] and st.session_state.get('v_path'):
@@ -667,12 +639,7 @@ with st.expander(T["position_block"], expanded=True):
                         option_type=pos["type"]
                     )
 
-                # 新損益邏輯
-                if pos["label"] in [T["Short Call"], T["Short Put"]]:
-                    pnl = (pos["premium"] - price) * 100
-                else:
-                    pnl = (price - pos["premium"]) * 100
-
+                pnl = (price - pos["premium"]) * 100
                 st.session_state.total_pnl += pnl
 
             st.session_state.positions.clear()
