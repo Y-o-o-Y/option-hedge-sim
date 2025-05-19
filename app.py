@@ -539,7 +539,7 @@ with col_right:
 
             fig, ax = plt.subplots()
             ax.plot(price_path[:current_day + 1], marker="o", alpha=0.7)
-            ax.set_title(f"Price Path ({current_day} Day)" if lang_choice == "en" else f"價格路徑123 (第 {current_day} 天)")
+            ax.set_title(f"Price Path ({current_day} Day)")
             ax.set_xlim(0, current_day + 5)
             ax.set_ylim(current_price * 0.9, current_price * 1.1)
             st.pyplot(fig)
