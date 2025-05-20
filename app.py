@@ -76,6 +76,7 @@ LANGS = {
         "unrealized_PnL": "💰當前浮動損益",
         "Short Call": "賣看漲期權",
         "Short Put":  "賣看跌期權",
+        "notstart": "尚未模擬股價路徑",
     },
     "en": {
         "title": "Monte Carlo Simulator",
@@ -130,6 +131,7 @@ LANGS = {
         "unrealized_PnL": "💰Current Unrealized PnL",
         "Short Call": "Sell Call",  
         "Short Put":  "Sell Put",
+        "notstart": "Simulation not started",
     }
 }
 
@@ -581,7 +583,7 @@ with st.expander(T["position_block"], expanded=True):
     current_day = st.session_state.get("day", 0)
 
     if not isinstance(price_path, list) or len(price_path) == 0:
-        st.warning("尚未模擬股價路徑")
+        st.warning(T["notstart"])
     elif current_day >= len(price_path):
         st.warning(T["nothing"])
     else:
