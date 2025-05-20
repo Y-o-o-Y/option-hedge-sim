@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 import yfinance as yf
 from datetime import datetime
 
+
+st.set_page_config(
+    page_title="Option Hedge Simulator",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 # 字體支援中文（可視需求切換）
 import matplotlib
 matplotlib.rcParams['axes.unicode_minus'] = False  # 避免負號亂碼
