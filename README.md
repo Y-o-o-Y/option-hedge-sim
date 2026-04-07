@@ -8,3 +8,5 @@ Heston 隨機波動率模型,
 Heston 3層不確定模型
 
 未來進一步更新:蒙地卡羅期權定價
+
+API Key 是用yfianice 抓資料的，有時候會被封鎖，paper trade 會跑不了
