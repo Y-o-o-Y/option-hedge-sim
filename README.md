@@ -11,4 +11,4 @@ Heston 3層不確定模型
 
 未來進一步更新:蒙地卡羅期權定價
 
-
+$$\Delta \Pi \approx \frac{1}{2}\Gamma(\Delta S)^2 + \Theta \Delta t$$
