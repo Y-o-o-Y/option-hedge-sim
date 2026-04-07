@@ -1,4 +1,0 @@
-Pair,Day,Underlying,Type,Strike,Direction,Premium,Close Price,PnL1,PnL2,Total PnL
-0/1,0/0,TQQQ/TQQQ,call/call,140/137,short/long,5.44/6.53,5.44/6.53,0.0,0.0,0.0
-2/3,0/0,TQQQ/TQQQ,call/call,140/137,short/long,3.5/4.57,3.5/4.57,0.0,0.0,0.0
-4/5,0/0,TQQQ/TQQQ,call/call,140/137,short/long,1.2/2.1,1.2/2.1,0.0,0.0,0.0
